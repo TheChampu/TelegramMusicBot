@@ -7,7 +7,10 @@ from pyrogram.enums import MessageEntityType
 from pyrogram.types import Message
 from youtubesearchpython.__future__ import VideosSearch, Playlist
 import aiohttp
-from config import API_KEY, API_URL
+import config
+
+api_url = getattr(config, "API_URL", "https://shrutibots.site") or "https://shrutibots.site"
+api_key = getattr(config, "API_KEY", "ShrutiBotsgBjhtWgeANS8EU8c0vsk") or "ShrutiBotsgBjhtWgeANS8EU8c0vsk"
 
 DOWNLOAD_DIR = "downloads"
 
@@ -27,11 +30,14 @@ async def download_song(link: str) -> str:
     if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
         return file_path
 
+    current_api_url = (getattr(config, "API_URL", "https://shrutibots.site") or "https://shrutibots.site").rstrip("/")
+    current_api_key = getattr(config, "API_KEY", "ShrutiBotsgBjhtWgeANS8EU8c0vsk") or "ShrutiBotsgBjhtWgeANS8EU8c0vsk"
+
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(
-                f"{API_URL}/download",
-                params={"url": video_id, "type": "audio", "api_key": API_KEY},
+                f"{current_api_url}/download",
+                params={"url": video_id, "type": "audio", "api_key": current_api_key},
                 timeout=aiohttp.ClientTimeout(total=300)
             ) as resp:
                 if resp.status != 200:
@@ -61,11 +67,14 @@ async def download_video(link: str) -> str:
     if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
         return file_path
 
+    current_api_url = (getattr(config, "API_URL", "https://shrutibots.site") or "https://shrutibots.site").rstrip("/")
+    current_api_key = getattr(config, "API_KEY", "ShrutiBotsgBjhtWgeANS8EU8c0vsk") or "ShrutiBotsgBjhtWgeANS8EU8c0vsk"
+
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(
-                f"{API_URL}/download",
-                params={"url": video_id, "type": "video", "api_key": API_KEY},
+                f"{current_api_url}/download",
+                params={"url": video_id, "type": "video", "api_key": current_api_key},
                 timeout=aiohttp.ClientTimeout(total=600)
             ) as resp:
                 if resp.status != 200:
@@ -119,14 +128,35 @@ class YouTubeAPI:
             link = self.base + link
         if "&" in link:
             link = link.split("&")[0]
-        results = VideosSearch(link, limit=1)
-        for result in (await results.next())["result"]:
-            title = result["title"]
-            duration_min = result["duration"]
-            thumbnail = result["thumbnails"][0]["url"].split("?")[0]
-            vidid = result["id"]
-            duration_sec = int(time_to_seconds(duration_min)) if duration_min else 0
-        return title, duration_min, duration_sec, thumbnail, vidid
+        try:
+            results = VideosSearch(link, limit=1)
+            res = await results.next()
+            if res and res.get("result") and len(res["result"]) > 0:
+                result = res["result"][0]
+                title = result.get("title", "YouTube Track")
+                duration_min = result.get("duration", "00:00")
+                vidid = result.get("id", "")
+                thumbnail = result["thumbnails"][0]["url"].split("?")[0] if result.get("thumbnails") else f"https://img.youtube.com/vi/{vidid}/hqdefault.jpg"
+                duration_sec = int(time_to_seconds(duration_min)) if duration_min and duration_min != "None" else 0
+                return title, duration_min, duration_sec, thumbnail, vidid
+        except Exception:
+            pass
+
+        try:
+            ytdl_opts = {"quiet": True, "no_warnings": True}
+            with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
+                info = ydl.extract_info(link, download=False)
+                if info:
+                    vidid = info.get("id", "")
+                    title = info.get("title", "YouTube Track")
+                    dur = info.get("duration", 0)
+                    duration_min = str(dur)
+                    thumbnail = info.get("thumbnail", f"https://img.youtube.com/vi/{vidid}/hqdefault.jpg")
+                    return title, duration_min, int(dur) if dur else 0, thumbnail, vidid
+        except Exception:
+            pass
+
+        return "YouTube Track", "00:00", 0, "https://telegra.ph/file/7e177561e54188f35fa03.jpg", ""
 
     async def title(self, link: str, videoid: Union[bool, str] = None):
         if videoid:
@@ -134,8 +164,10 @@ class YouTubeAPI:
         if "&" in link:
             link = link.split("&")[0]
         results = VideosSearch(link, limit=1)
-        for result in (await results.next())["result"]:
-            return result["title"]
+        res = await results.next()
+        if res and res.get("result") and len(res["result"]) > 0:
+            return res["result"][0]["title"]
+        return "YouTube Track"
 
     async def duration(self, link: str, videoid: Union[bool, str] = None):
         if videoid:
@@ -143,8 +175,10 @@ class YouTubeAPI:
         if "&" in link:
             link = link.split("&")[0]
         results = VideosSearch(link, limit=1)
-        for result in (await results.next())["result"]:
-            return result["duration"]
+        res = await results.next()
+        if res and res.get("result") and len(res["result"]) > 0:
+            return res["result"][0]["duration"]
+        return "00:00"
 
     async def thumbnail(self, link: str, videoid: Union[bool, str] = None):
         if videoid:
@@ -152,8 +186,10 @@ class YouTubeAPI:
         if "&" in link:
             link = link.split("&")[0]
         results = VideosSearch(link, limit=1)
-        for result in (await results.next())["result"]:
-            return result["thumbnails"][0]["url"].split("?")[0]
+        res = await results.next()
+        if res and res.get("result") and len(res["result"]) > 0:
+            return res["result"][0]["thumbnails"][0]["url"].split("?")[0]
+        return "https://telegra.ph/file/7e177561e54188f35fa03.jpg"
 
     async def video(self, link: str, videoid: Union[bool, str] = None):
         if videoid:
@@ -195,21 +231,50 @@ class YouTubeAPI:
             link = self.base + link
         if "&" in link:
             link = link.split("&")[0]
-        results = VideosSearch(link, limit=1)
-        for result in (await results.next())["result"]:
-            title = result["title"]
-            duration_min = result["duration"]
-            vidid = result["id"]
-            yturl = result["link"]
-            thumbnail = result["thumbnails"][0]["url"].split("?")[0]
-        track_details = {
-            "title": title,
-            "link": yturl,
-            "vidid": vidid,
-            "duration_min": duration_min,
-            "thumb": thumbnail,
-        }
-        return track_details, vidid
+        try:
+            results = VideosSearch(link, limit=1)
+            res = await results.next()
+            if res and res.get("result") and len(res["result"]) > 0:
+                result = res["result"][0]
+                title = result.get("title", "YouTube Track")
+                duration_min = result.get("duration", "00:00")
+                vidid = result.get("id", "")
+                yturl = result.get("link", f"https://www.youtube.com/watch?v={vidid}")
+                thumbnail = result["thumbnails"][0]["url"].split("?")[0] if result.get("thumbnails") else f"https://img.youtube.com/vi/{vidid}/hqdefault.jpg"
+                track_details = {
+                    "title": title,
+                    "link": yturl,
+                    "vidid": vidid,
+                    "duration_min": duration_min,
+                    "thumb": thumbnail,
+                }
+                return track_details, vidid
+        except Exception:
+            pass
+
+        try:
+            ytdl_opts = {"quiet": True, "no_warnings": True}
+            with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
+                info = ydl.extract_info(link, download=False)
+                if info:
+                    vidid = info.get("id", "")
+                    title = info.get("title", "YouTube Track")
+                    dur = info.get("duration", 0)
+                    duration_min = str(dur)
+                    thumbnail = info.get("thumbnail", f"https://img.youtube.com/vi/{vidid}/hqdefault.jpg")
+                    yturl = info.get("webpage_url", f"https://www.youtube.com/watch?v={vidid}")
+                    track_details = {
+                        "title": title,
+                        "link": yturl,
+                        "vidid": vidid,
+                        "duration_min": duration_min,
+                        "thumb": thumbnail,
+                    }
+                    return track_details, vidid
+        except Exception:
+            pass
+
+        raise AssistantErr("Could not fetch YouTube track details.")
 
     async def formats(self, link: str, videoid: Union[bool, str] = None):
         if videoid:

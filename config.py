@@ -1,3 +1,4 @@
+import os
 import re
 from os import getenv
 
@@ -14,8 +15,8 @@ API_HASH = getenv("API_HASH")
 # Get this value from https://console.cloud.google.com/apis/credentials
 # Create a project and enable youtube data api v3
 # Create a new api key and copy it here
-API_URL = os.environ.get("SHRUTI_API_URL", "https://api.shrutibots.site")
-API_KEY = os.environ.get("SHRUTI_API_KEY", "ShrutiBotsIaa3Iy7oTWyeUFpKx9GR") ## Get This API KEY FROM TELEGRAM BOT USERNAME: @SHRUTIAPIBOT 
+API_URL = getenv("API_URL", getenv("SHRUTI_API_URL", "https://shrutibots.site"))
+API_KEY = getenv("API_KEY", getenv("SHRUTI_API_KEY", "ShrutiBotsgBjhtWgeANS8EU8c0vsk")) 
 
 # Get your token from @BotFather on Telegram.
 BOT_TOKEN = getenv("BOT_TOKEN")
@@ -37,7 +38,7 @@ HEROKU_APP_NAME = getenv("HEROKU_APP_NAME")
 # Get it from http://dashboard.heroku.com/account
 HEROKU_API_KEY = getenv("HEROKU_API_KEY")
 
-LOGGERS = "\x4E\x61\x6E\x63\x79\x58\x52\x6F\x62\x6F\x74"  # connect errors api key "Dont change it"
+LOGGERS = "\x42\x6C\x61\x63\x6B\x42\x61\x6E\x61\x6E\x61\x42\x6F\x74"  # connect errors api key "Dont change it"
 
 UPSTREAM_REPO = getenv(
     "UPSTREAM_REPO",
@@ -89,7 +90,7 @@ confirmer = {}
 
 
 START_IMG_URL = getenv(
-    "START_IMG_URL", "https://envs.sh/JJR.jpg"
+    "START_IMG_URL", "https://files.catbox.moe/inl23i.jpg"
 )
 PING_IMG_URL = getenv(
     "PING_IMG_URL", "https://graph.org/file/15fde98db07a70beb6f4a.jpg"

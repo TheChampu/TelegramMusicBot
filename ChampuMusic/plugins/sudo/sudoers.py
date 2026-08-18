@@ -35,7 +35,7 @@ async def userdel(client, message: Message, _):
     user = await extract_user(message)
     if user.id not in SUDOERS:
         return await message.reply_text(_["sudo_3"].format(user.mention))
-    if user.id == SPECIAL_ID:
+    if user.id in SPECIAL_ID:
         return await message.reply_text("ʏᴏᴜ ᴄᴀɴɴᴏᴛ ʀᴇᴍᴏᴠᴇ ᴛʜɪs sᴘᴇᴄɪᴀʟ ᴜsᴇʀ.")
     removed = await remove_sudo(user.id)
     if removed:
@@ -71,7 +71,7 @@ async def check_sudo_list(client, callback_query: CallbackQuery):
         
         count = 1
         for user_id in SUDOERS:
-            if user_id != OWNER_ID and user_id != SPECIAL_ID:
+            if user_id != OWNER_ID and user_id not in SPECIAL_ID:
                 try:
                     user = await app.get_users(user_id)
                     if isinstance(user, list):
@@ -99,7 +99,7 @@ async def back_to_main_menu(client, callback_query: CallbackQuery):
 async def del_all_sudo(client, message: Message, _):
     removed_users = []  # List to store removed users' information
     for user_id in SUDOERS.copy():
-        if user_id != OWNER_ID and user_id != SPECIAL_ID:
+        if user_id != OWNER_ID and user_id not in SPECIAL_ID:
             removed = await remove_sudo(user_id)
             if removed:
                 SUDOERS.remove(user_id)

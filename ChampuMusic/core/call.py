@@ -5,16 +5,75 @@ from typing import Union
 
 from pyrogram import Client
 from pyrogram.types import InlineKeyboardMarkup
-from pytgcalls import PyTgCalls, StreamType
-from pytgcalls.exceptions import (
-    AlreadyJoinedError,
-    NoActiveGroupCall,
-    TelegramServerError,
-)
-from pytgcalls.types import Update
-from pytgcalls.types.input_stream import AudioPiped, AudioVideoPiped
-from pytgcalls.types.input_stream.quality import HighQualityAudio, MediumQualityVideo
-from pytgcalls.types.stream import StreamAudioEnded
+from pytgcalls import PyTgCalls
+try:
+    from pytgcalls import StreamType
+except ImportError:
+    class StreamType:
+        pulse_stream = None
+
+try:
+    from pytgcalls.exceptions import (
+        AlreadyJoinedError,
+        NoActiveGroupCall,
+        TelegramServerError,
+    )
+except ImportError:
+    from pytgcalls.exceptions import NoActiveGroupCall
+    AlreadyJoinedError = Exception
+    TelegramServerError = Exception
+
+try:
+    from pytgcalls.types import Update
+except ImportError:
+    Update = object
+
+try:
+    from pytgcalls.types.input_stream import AudioPiped, AudioVideoPiped
+except ImportError:
+    try:
+        from pytgcalls.types.stream import AudioPiped, AudioVideoPiped
+    except ImportError:
+        from pytgcalls.types import MediaStream as AudioPiped
+        from pytgcalls.types import MediaStream as AudioVideoPiped
+
+try:
+    from pytgcalls.types.input_stream.quality import HighQualityAudio, MediumQualityVideo
+except ImportError:
+    try:
+        from pytgcalls.types.stream.quality import HighQualityAudio, MediumQualityVideo
+    except ImportError:
+        try:
+            from pytgcalls.types.stream import HighQualityAudio, MediumQualityVideo
+        except ImportError:
+            try:
+                from pytgcalls.types import HighQualityAudio, MediumQualityVideo
+            except ImportError:
+                try:
+                    from pytgcalls.types import AudioQuality, VideoQuality
+                    HighQualityAudio = lambda: AudioQuality.HIGH
+                    MediumQualityVideo = lambda: VideoQuality.MEDIUM
+                except ImportError:
+                    try:
+                        from pytgcalls.types.stream import AudioQuality, VideoQuality
+                        HighQualityAudio = lambda: AudioQuality.HIGH
+                        MediumQualityVideo = lambda: VideoQuality.MEDIUM
+                    except ImportError:
+                        try:
+                            from pytgcalls.types.input_stream import AudioQuality, VideoQuality
+                            HighQualityAudio = lambda: AudioQuality.HIGH
+                            MediumQualityVideo = lambda: VideoQuality.MEDIUM
+                        except ImportError:
+                            HighQualityAudio = lambda: "high"
+                            MediumQualityVideo = lambda: "medium"
+
+try:
+    from pytgcalls.types.stream import StreamAudioEnded
+except ImportError:
+    try:
+        from pytgcalls.types import StreamAudioEnded
+    except ImportError:
+        StreamAudioEnded = object
 
 import config
 from ChampuMusic import LOGGER, YouTube, app
@@ -100,6 +159,23 @@ class Call(PyTgCalls):
             self.userbot5,
             cache_duration=100,
         )
+    async def _leave(self, client, chat_id: int):
+        if hasattr(client, "leave_group_call"):
+            return await client.leave_group_call(chat_id)
+        elif hasattr(client, "leave_call"):
+            return await client.leave_call(chat_id)
+
+    async def _join(self, client, chat_id: int, stream, stream_type=None):
+        if hasattr(client, "join_group_call"):
+            try:
+                if stream_type is not None:
+                    return await client.join_group_call(chat_id, stream, stream_type=stream_type)
+                return await client.join_group_call(chat_id, stream)
+            except TypeError:
+                return await client.join_group_call(chat_id, stream)
+        elif hasattr(client, "play"):
+            return await client.play(chat_id, stream)
+
     async def pause_stream(self, chat_id: int):
         assistant = await group_assistant(self, chat_id)
         await assistant.pause_stream(chat_id)
@@ -112,34 +188,34 @@ class Call(PyTgCalls):
         assistant = await group_assistant(self, chat_id)
         try:
             await _clear_(chat_id)
-            await assistant.leave_group_call(chat_id)
+            await self._leave(assistant, chat_id)
         except:
             pass
 
     async def stop_stream_force(self, chat_id: int):
         try:
             if config.STRING1:
-                await self.one.leave_group_call(chat_id)
+                await self._leave(self.one, chat_id)
         except:
             pass
         try:
             if config.STRING2:
-                await self.two.leave_group_call(chat_id)
+                await self._leave(self.two, chat_id)
         except:
             pass
         try:
             if config.STRING3:
-                await self.three.leave_group_call(chat_id)
+                await self._leave(self.three, chat_id)
         except:
             pass
         try:
             if config.STRING4:
-                await self.four.leave_group_call(chat_id)
+                await self._leave(self.four, chat_id)
         except:
             pass
         try:
             if config.STRING5:
-                await self.five.leave_group_call(chat_id)
+                await self._leave(self.five, chat_id)
         except:
             pass
         try:
@@ -226,7 +302,7 @@ class Call(PyTgCalls):
         await remove_active_video_chat(chat_id)
         await remove_active_chat(chat_id)
         try:
-            await assistant.leave_group_call(chat_id)
+            await self._leave(assistant, chat_id)
         except:
             pass
 
@@ -271,13 +347,14 @@ class Call(PyTgCalls):
 
     async def stream_call(self, link):
         assistant = await group_assistant(self, config.LOGGER_ID)
-        await assistant.join_group_call(
+        await self._join(
+            assistant,
             config.LOGGER_ID,
             AudioVideoPiped(link),
-            stream_type=StreamType().pulse_stream,
+            stream_type=StreamType().pulse_stream if hasattr(StreamType, "pulse_stream") else None,
         )
         await asyncio.sleep(0.2)
-        await assistant.leave_group_call(config.LOGGER_ID)
+        await self._leave(assistant, config.LOGGER_ID)
 
     async def join_call(
         self,
@@ -307,10 +384,11 @@ class Call(PyTgCalls):
                 else AudioPiped(link, audio_parameters=HighQualityAudio())
             )
         try:
-            await assistant.join_group_call(
+            await self._join(
+                assistant,
                 chat_id,
                 stream,
-                stream_type=StreamType().pulse_stream,
+                stream_type=StreamType().pulse_stream if hasattr(StreamType, "pulse_stream") else None,
             )
         except NoActiveGroupCall:
             raise AssistantErr(_["call_8"])
@@ -341,11 +419,11 @@ class Call(PyTgCalls):
             await auto_clean(popped)
             if not check:
                 await _clear_(chat_id)
-                return await client.leave_group_call(chat_id)
+                return await self._leave(client, chat_id)
         except:
             try:
                 await _clear_(chat_id)
-                return await client.leave_group_call(chat_id)
+                return await self._leave(client, chat_id)
             except:
                 return
         else:
@@ -568,33 +646,50 @@ class Call(PyTgCalls):
             await self.five.start()
         
     async def decorators(self):
-        @self.one.on_kicked()
-        @self.two.on_kicked()
-        @self.three.on_kicked()
-        @self.four.on_kicked()
-        @self.five.on_kicked()
-        @self.one.on_closed_voice_chat()
-        @self.two.on_closed_voice_chat()
-        @self.three.on_closed_voice_chat()
-        @self.four.on_closed_voice_chat()
-        @self.five.on_closed_voice_chat()
-        @self.one.on_left()
-        @self.two.on_left()
-        @self.three.on_left()
-        @self.four.on_left()
-        @self.five.on_left()
-        async def stream_services_handler(_, chat_id: int):
-            await self.stop_stream(chat_id)
+        clients = [c for c in [self.one, self.two, self.three, self.four, self.five] if c is not None]
+        for client in clients:
+            if hasattr(client, "on_kicked"):
+                try:
+                    @client.on_kicked()
+                    @client.on_closed_voice_chat()
+                    @client.on_left()
+                    async def stream_services_handler(_, chat_id: int):
+                        await self.stop_stream(chat_id)
+                except Exception:
+                    pass
 
-        @self.one.on_stream_end()
-        @self.two.on_stream_end()
-        @self.three.on_stream_end()
-        @self.four.on_stream_end()
-        @self.five.on_stream_end()
-        async def stream_end_handler1(client, update: Update):
-            if not isinstance(update, StreamAudioEnded):
-                return
-            await self.change_stream(client, update.chat_id)
+            if hasattr(client, "on_stream_end"):
+                try:
+                    @client.on_stream_end()
+                    async def stream_end_handler1(cl, update: Update):
+                        if not isinstance(update, StreamAudioEnded):
+                            return
+                        await self.change_stream(cl, update.chat_id)
+                except Exception:
+                    pass
+
+            if hasattr(client, "on_update"):
+                try:
+                    from pytgcalls.types import StreamEnded, ChatUpdate
+                    @client.on_update()
+                    async def update_handler(cl, update):
+                        chat_id = getattr(update, "chat_id", None)
+                        if not chat_id:
+                            return
+                        if isinstance(update, StreamEnded):
+                            await self.change_stream(cl, chat_id)
+                        elif isinstance(update, ChatUpdate):
+                            status = getattr(update, "status", None)
+                            if status in [
+                                ChatUpdate.Status.KICKED,
+                                ChatUpdate.Status.LEFT_GROUP,
+                                ChatUpdate.Status.CLOSED_VOICE_CHAT,
+                                ChatUpdate.Status.DISCARDED_CALL,
+                                ChatUpdate.Status.LEFT_CALL,
+                            ]:
+                                await self.stop_stream(chat_id)
+                except Exception:
+                    pass
 
 
 Champu = Call()

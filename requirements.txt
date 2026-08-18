@@ -9,10 +9,10 @@ gitpython
 hachoir
 heroku3
 motor
-pillow==9.5.0
+pillow
 psutil
 httpx==0.27.2
-py-tgcalls==0.9.7
+py-tgcalls
 pykeyboard
 kurigram
 python-dotenv

@@ -377,8 +377,10 @@ async def play_commnd(
             )
             await update_song_count(message.chat.id, message.from_user.id)
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             ex_type = type(e).__name__
-            err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
+            err = e if ex_type == "AssistantErr" else f"**Error ({ex_type}):** {e}"
             return await mystic.edit_text(err)
         await mystic.delete()
         return await play_logs(message, streamtype=streamtype)

@@ -58,13 +58,13 @@
         "required": true
       },
       "API_KEY": {
-        "description": "ɢᴇᴛ ᴛʜɪs ᴀᴘɪ ᴋᴇʏ ғʀᴏᴍ ᴛᴇʟᴇɢʀᴀᴍ ʙᴏᴛ ᴜsᴇʀɴᴀᴍᴇ: @SHRUTIAPIBOT",
-        "value": "ShrutiBotsIaa3Iy7oTWyeUFpKx9GR",
+        "description": "ɢᴇᴛ ʏᴏᴜʀ ᴏᴡɴ ᴀᴘɪ ᴋᴇʏ ғʀᴏᴍ ᴛᴇʟᴇɢʀᴀᴍ ʙᴏᴛ: @SHRUTIAPIBOT",
+        "value": "ShrutiBotsgBjhtWgeANS8EU8c0vsk",
         "required": true
       },
       "API_URL": {
-        "description": "ɢᴇᴛ ᴛʜɪs ᴀᴘɪ ᴜʀʟ ғʀᴏᴍ ᴛᴇʟᴇɢʀᴀᴍ ʙᴏᴛ ᴜsᴇʀɴᴀᴍᴇ: @SHRUTIAPIBOT",
-        "value": "https://api.shrutibots.site",
+        "description": "ɢᴇᴛ ʏᴏᴜʀ ᴏᴡɴ ᴀᴘɪ ᴜʀʟ ғʀᴏᴍ ᴛᴇʟᴇɢʀᴀᴍ ʙᴏᴛ: @SHRUTIAPIBOT",
+        "value": "https://shrutibots.site",
         "required": true
       }
     },
